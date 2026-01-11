@@ -3,6 +3,7 @@ import urllib3
 import datetime
 from config import AREA_URL, FORECAST_URL_TEMPLATE
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def format_date(iso_date):
     try:
@@ -22,8 +23,7 @@ def fetch_area_list():
         return {}
 
 def fetch_forecast_data(code):
-    if code == "014030":
-        code = "014100"
+    if code == "014030": code = "014100" 
 
     url = FORECAST_URL_TEMPLATE.format(code=code)
     
@@ -31,16 +31,17 @@ def fetch_forecast_data(code):
         res = requests.get(url, verify=False)
         res.raise_for_status()
         data = res.json()
+
         weather_report = data[0]['timeSeries'][0]
         temp_report = data[0]['timeSeries'][2] if len(data[0]['timeSeries']) > 2 else None
         date_iso = weather_report['timeDefines'][0]
         date_str = format_date(date_iso)
 
         results = []
-
         for i, area in enumerate(weather_report['areas']):
-            area_name = area['area']['name']
+            area_name = area['area']['name'] 
             weather = area['weathers'][0]
+            w_code = area.get('weatherCodes', ["000"])[0] 
             
             temp_text = "--℃"
             if temp_report and i < len(temp_report['areas']):
@@ -55,9 +56,10 @@ def fetch_forecast_data(code):
 
             results.append({
                 "date": date_str,
-                "area_name": area_name,
                 "weather": weather,
-                "temp": temp_text
+                "code": w_code,
+                "min": temp_text.split(" / ")[0] if "/" in temp_text else temp_text, 
+                "max": temp_text.split(" / ")[1] if "/" in temp_text else ""
             })
             
         return results
